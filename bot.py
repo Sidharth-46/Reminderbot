@@ -55,20 +55,20 @@ async def water(interaction: discord.Interaction, value: str):
         interval = int(value)
         
         if interval <= 0:
-            await interaction.response.send_message("❌ Please specify a positive number of minutes.")
+            await interaction.response.send_message("❌ Please specify a positive number of minute(s).")
             return
         
         if user_id in reminders:
             reminders[user_id]["task"].cancel()
-            await interaction.response.send_message(f"🔄 Updating reminder from {reminders[user_id]['interval']} minutes to {interval} minutes.")
+            await interaction.response.send_message(f"🔄 Updating reminder from {reminders[user_id]['interval']} minute(s) to {interval} minute(s).")
         else:
-            await interaction.response.send_message(f"✅ Water reminder set! You'll receive reminders every {interval} minutes in your DMs.")
+            await interaction.response.send_message(f"✅ Water reminder set! You'll receive reminders every {interval} minute(s) in your DMs.")
         
         task = asyncio.create_task(remind_water(interaction.user, interval))
         reminders[user_id] = {"interval": interval, "task": task}
         
     except ValueError:
-        await interaction.response.send_message("❌ Please specify a valid number of minutes or use 'remove'")
+        await interaction.response.send_message("❌ Please specify a valid number of minute(s) or use 'remove'")
 
 
 async def remind_water(user: discord.User, interval: int):
@@ -83,7 +83,7 @@ async def remind_water(user: discord.User, interval: int):
                     color=discord.Color.blue(),
                     timestamp=datetime.now()
                 )
-                embed.set_footer(text=f"Reminder interval: {interval} minutes")
+                embed.set_footer(text=f"Reminder interval: {interval} minute(s)")
                 
                 await user.send(embed=embed)
                 
