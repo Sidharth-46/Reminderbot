@@ -7,11 +7,13 @@ from dotenv import load_dotenv
 from flask import Flask
 from threading import Thread
 
+from discord import app_commands
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.dm_messages = True
 
-bot = commands.Bot(command_prefix="/", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 reminders = {}
 
@@ -29,46 +31,44 @@ def run_flask():
 
 @bot.event
 async def on_ready():
+    await bot.tree.sync()
     print(f"✅ Bot logged in as {bot.user}")
     print(f"🚀 Bot is ready!")
 
 
-@bot.hybrid_command(name="water", description="Set a hydration reminder")
-async def water(ctx, value: str = None):
+@bot.tree.command(name="water", description="Set a hydration reminder")
+@app_commands.describe(value="Minutes between reminders, or 'remove' to stop")
+async def water(interaction: discord.Interaction, value: str):
     
-    user_id = ctx.author.id
-    
-    if value is None:
-        await ctx.send("❌ Please specify a value. Usage: `/water <minutes>` or `/water remove`")
-        return
+    user_id = interaction.user.id
     
     if value.lower() == "remove":
         if user_id in reminders:
             reminders[user_id]["task"].cancel()
             del reminders[user_id]
-            await ctx.send("✅ Water reminder removed!")
+            await interaction.response.send_message("✅ Water reminder removed!")
         else:
-            await ctx.send("❌ You don't have an active water reminder.")
+            await interaction.response.send_message("❌ You don't have an active water reminder.")
         return
     
     try:
         interval = int(value)
         
         if interval <= 0:
-            await ctx.send("❌ Please specify a positive number of minutes.")
+            await interaction.response.send_message("❌ Please specify a positive number of minutes.")
             return
         
         if user_id in reminders:
             reminders[user_id]["task"].cancel()
-            await ctx.send(f"🔄 Updating reminder from {reminders[user_id]['interval']} minutes to {interval} minutes.")
+            await interaction.response.send_message(f"🔄 Updating reminder from {reminders[user_id]['interval']} minutes to {interval} minutes.")
         else:
-            await ctx.send(f"✅ Water reminder set! You'll receive reminders every {interval} minutes in your DMs.")
+            await interaction.response.send_message(f"✅ Water reminder set! You'll receive reminders every {interval} minutes in your DMs.")
         
-        task = asyncio.create_task(remind_water(ctx.author, interval))
+        task = asyncio.create_task(remind_water(interaction.user, interval))
         reminders[user_id] = {"interval": interval, "task": task}
         
     except ValueError:
-        await ctx.send("❌ Please specify a valid number of minutes or use `/water remove`")
+        await interaction.response.send_message("❌ Please specify a valid number of minutes or use 'remove'")
 
 
 async def remind_water(user: discord.User, interval: int):
@@ -103,11 +103,8 @@ async def remind_water(user: discord.User, interval: int):
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("❌ Missing argument. Usage: `/water <minutes>` or `/water remove`")
-    elif isinstance(error, commands.CommandNotFound):
-        await ctx.send("❌ Command not found. Use `/water` for hydration reminders.")
+        await ctx.send("❌ Missing argument.")
     else:
-        await ctx.send(f"❌ An error occurred: {str(error)}")
         print(f"Error: {error}")
 
 
