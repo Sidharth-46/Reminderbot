@@ -1,0 +1,11 @@
+# Ignore environment files
+.env
+*.pyc
+__pycache__/
+*.egg-info/
+.DS_Store
+.venv
+venv/
+
+# Don't commit config with real tokens
+config.py
