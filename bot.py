@@ -37,38 +37,37 @@ async def on_ready():
 
 
 @bot.tree.command(name="water", description="Set a hydration reminder")
-@app_commands.describe(value="Minutes between reminders, or 'remove' to stop")
-async def water(interaction: discord.Interaction, value: str):
+@app_commands.describe(minutes="How many minutes between each reminder")
+async def water(interaction: discord.Interaction, minutes: int):
     
     user_id = interaction.user.id
     
-    if value.lower() == "remove":
-        if user_id in reminders:
-            reminders[user_id]["task"].cancel()
-            del reminders[user_id]
-            await interaction.response.send_message("✅ Water reminder removed!")
-        else:
-            await interaction.response.send_message("❌ You don't have an active water reminder.")
+    if minutes <= 0:
+        await interaction.response.send_message("❌ Please specify a positive number of minute(s).")
         return
     
-    try:
-        interval = int(value)
-        
-        if interval <= 0:
-            await interaction.response.send_message("❌ Please specify a positive number of minute(s).")
-            return
-        
-        if user_id in reminders:
-            reminders[user_id]["task"].cancel()
-            await interaction.response.send_message(f"🔄 Updating reminder from {reminders[user_id]['interval']} minute(s) to {interval} minute(s).")
-        else:
-            await interaction.response.send_message(f"✅ Water reminder set! You'll receive reminders every {interval} minute(s) in your DMs.")
-        
-        task = asyncio.create_task(remind_water(interaction.user, interval))
-        reminders[user_id] = {"interval": interval, "task": task}
-        
-    except ValueError:
-        await interaction.response.send_message("❌ Please specify a valid number of minute(s) or use 'remove'")
+    if user_id in reminders:
+        reminders[user_id]["task"].cancel()
+        await interaction.response.send_message(f"🔄 Updating reminder from {reminders[user_id]['interval']} minute(s) to {minutes} minute(s).")
+    else:
+        await interaction.response.send_message(f"✅ Water reminder set! You'll receive reminders every {minutes} minute(s) in your DMs.")
+    
+    task = asyncio.create_task(remind_water(interaction.user, minutes))
+    reminders[user_id] = {"interval": minutes, "task": task}
+
+
+@bot.tree.command(name="water-remove", description="Remove your water reminder")
+async def water_remove(interaction: discord.Interaction):
+    
+    user_id = interaction.user.id
+    
+    if user_id in reminders:
+        reminders[user_id]["task"].cancel()
+        del reminders[user_id]
+        await interaction.response.send_message("✅ Water reminder removed!")
+    else:
+        await interaction.response.send_message("❌ You don't have an active water reminder.")
+
 
 
 async def remind_water(user: discord.User, interval: int):
